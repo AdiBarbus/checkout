@@ -3,7 +3,9 @@
 using AutoMapper;
 using DataAccess.Interfaces;
 using DataAccess.Models;
+using Exceptions;
 using Interfaces;
+using Microsoft.AspNetCore.JsonPatch;
 using ViewModels;
 
 public class BasketService : IBasketService
@@ -17,53 +19,55 @@ public class BasketService : IBasketService
         _mapper = mapper;
     }
     
-    public async Task<BasketViewModel> GetBasketDetails(int id, CancellationToken cancellationToken)
+    public async Task<BasketViewModel> GetBasketDetails(int basketId, CancellationToken cancellationToken)
     {
-        var basket = await _basketRepository.GetBasket(id, cancellationToken);
+        var basket = await _basketRepository.GetBasket(basketId, cancellationToken);
+        
         return _mapper.Map<BasketViewModel>(basket);
     }
 
     public async Task<Basket> CreateBasket(Basket basket, CancellationToken cancellationToken)
     {
         basket.SetAsCreated();
+
         return await _basketRepository.CreateBasket(basket, cancellationToken);
     }
 
     public async Task<Item> CreateBasketItem(int basketId, Item item, CancellationToken cancellationToken)
     {
-        var basket = await _basketRepository.GetBasket(basketId, cancellationToken);
+        var basket = await _basketRepository.GetBasketWithoutItems(basketId, cancellationToken);
 
-        if (IsNullOrCompletedBasket(basket))
-        {
-            return null;
-        }
+        ValidateBasket(basketId, basket);
 
         item.SetAsCreated();
         item.BasketId = basketId;
 
-        return await _basketRepository.AddItem(basketId, item, cancellationToken);
+        return await _basketRepository.AddItem(item, cancellationToken);
     }
     
-    public async Task<bool> CompleteBasket(int id, CancellationToken cancellationToken)
+    public async Task<bool> CompleteBasket(int basketId, JsonPatchDocument<Basket> patchedBasket, CancellationToken cancellationToken)
     {
-        var basket = await _basketRepository.GetBasket(id, cancellationToken);
+        var basket = await _basketRepository.GetBasketWithoutItems(basketId, cancellationToken);
 
-        if (IsNullOrCompletedBasket(basket))
-        {
-            return false;
-        }
+        ValidateBasket(basketId, basket);
 
         basket.SetAsModified();
-        basket.IsClosed = true;
-        basket.IsPayed = true;
 
-        await _basketRepository.SaveChangesAsync();
+        var result = await _basketRepository.CompleteBasket(basket, patchedBasket, cancellationToken);
 
-        return true;
+        return result > 0;
     }
 
-    private static bool IsNullOrCompletedBasket(Basket basket)
+    private static void ValidateBasket(int basketId, Basket basket)
     {
-        return basket is null || basket.IsClosed || basket.IsPayed;
+        if (basket is null)
+        {
+            throw new BasketNotFoundException($"The basket with id {basketId} was not found.");
+        }
+
+        if (basket.IsClosed || basket.IsPayed)
+        {
+            throw new CompletedBasketException($"The basket with id {basketId} is already completed.");
+        }
     }
 }

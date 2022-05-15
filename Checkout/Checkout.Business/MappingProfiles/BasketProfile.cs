@@ -1,13 +1,12 @@
 ﻿namespace Checkout.Business.MappingProfiles;
 
 using AutoMapper;
+using Constants;
 using DataAccess.Models;
 using ViewModels;
 
 public class BasketProfile : Profile
 {
-    private const int Vat = 10;
-
     public BasketProfile()
     {
         CreateMap<Basket, BasketViewModel>()
@@ -18,7 +17,7 @@ public class BasketProfile : Profile
             {
                 var totalNet = source.Items?.Sum(i => i.Price) ?? 0;
                 dest.TotalNet = totalNet;
-                dest.TotalGross = source.PaysVat ? totalNet + totalNet / Vat : totalNet;
+                dest.TotalGross = source.PaysVat ? totalNet + totalNet / Constants.Vat : totalNet;
             });
     }
 }

@@ -2,6 +2,7 @@
 
 using DbContexts;
 using Interfaces;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.EntityFrameworkCore;
 using Models;
 
@@ -18,6 +19,13 @@ public class BasketRepository : IBasketRepository
     {
         return await _dbContext.Baskets.Where(b => b.Id.Equals(id))
             .Include(b => b.Items)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<Basket> GetBasketWithoutItems(int id, CancellationToken cancellationToken)
+    {
+        return await _dbContext.Baskets.Where(b => b.Id.Equals(id))
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -29,7 +37,7 @@ public class BasketRepository : IBasketRepository
         return basket;
     }
 
-    public async Task<Item> AddItem(int basketId, Item item, CancellationToken cancellationToken)
+    public async Task<Item> AddItem(Item item, CancellationToken cancellationToken)
     {
         await _dbContext.Items.AddAsync(item, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -37,8 +45,9 @@ public class BasketRepository : IBasketRepository
         return item;
     }
     
-    public Task<int> SaveChangesAsync()
+    public async Task<int> CompleteBasket(Basket basket, JsonPatchDocument<Basket> patchedBasket, CancellationToken cancellationToken)
     {
-        return _dbContext.SaveChangesAsync();
+        patchedBasket.ApplyTo(basket);
+        return await _dbContext.SaveChangesAsync(cancellationToken);
     }
 }
