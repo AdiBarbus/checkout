@@ -4,7 +4,7 @@ using Base;
 
 public class Basket : BaseAuditEntity
 {
-    public string? Customer { get; set; }
+    public string Customer { get; set; }
 
     public bool PaysVat { get; set; }
 
@@ -12,5 +12,5 @@ public class Basket : BaseAuditEntity
 
     public bool IsPayed { get; set; }
 
-    public IList<Item>? Items { get; set; }
+    public IList<Item> Items { get; set; }
 }

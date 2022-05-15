@@ -25,7 +25,15 @@ public class BasketController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<BasketViewModel> GetBasket([FromRoute] int basketId, CancellationToken cancellationToken)
     {
-        return await _basketService.GetBasketDetails(basketId, cancellationToken);
+        try
+        {
+            return await _basketService.GetBasketDetails(basketId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, ex.Message);
+            throw new Exception(ex.Message, ex);
+        }
     }
 
     [HttpPost]
@@ -33,7 +41,15 @@ public class BasketController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<Basket> CreateBasket(Basket basket, CancellationToken cancellationToken)
     {
-        return await _basketService.CreateBasket(basket, cancellationToken);
+        try
+        {
+            return await _basketService.CreateBasket(basket, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, ex.Message);
+            throw new Exception(ex.Message, ex);
+        }
     }
 
     [HttpPut("/{basketId}/article-line")]
